@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Classification Presse
-Comment=Analyser et classifier des articles de presse
-Exec=classification-presse
-Icon=classification-presse
-Terminal=true
-Categories=Education;Science;
-StartupNotify=true
