@@ -1,6 +1,7 @@
 ## Construire le paquet
 
 ```bash
+chmod +x build_deb.sh
 ./build_deb.sh
 ```
 
