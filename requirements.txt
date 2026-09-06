@@ -1,0 +1,14 @@
+beautifulsoup4==4.12.3
+lxml==5.2.2
+python-dotenv==1.0.1
+psycopg2-binary==2.9.9
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.5.1
+nltk==3.8.1
+spacy==3.7.5
+gensim==4.3.3
+joblib==1.4.2
+pyyaml==6.0.2
+requests>=2.31,<3
+flask==3.0.3

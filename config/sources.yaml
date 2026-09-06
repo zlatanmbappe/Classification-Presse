@@ -1,0 +1,25 @@
+sources:
+- type: page
+  url: https://www.numerama.com/tech/
+  theme: Tech
+  limit: 10
+- type: page
+  url: https://www.numerama.com/sciences/
+  theme: Sciences
+  limit: 10
+- type: page
+  url: https://www.rfi.fr/fr/podcasts/radio-foot-internationale/
+  theme: Sport
+  limit: 10
+- type: page
+  url: https://www.rfi.fr/fr/podcasts/politique-choix-semaine/
+  theme: Politique
+  limit: 10
+- type: page
+  url: https://www.rfi.fr/fr/podcasts/aujourd-hui-%C3%A9conomie/
+  theme: Economie
+  limit: 10
+- type: page
+  url: https://www.rfi.fr/fr/podcasts/reportage-culture/
+  theme: Culture
+  limit: 10

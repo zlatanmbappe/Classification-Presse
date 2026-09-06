@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Classification Presse</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><div class="logo">CP</div><div><h1>Classification Presse</h1><p>Corpus · analyse · classification</p></div></div>
+    <span class="status"><span class="dot"></span> Application locale</span>
+  </header>
+
+  <main class="page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <section class="alert {{ category }}"><strong>{{ message }}</strong></section>
+      {% endfor %}
+    {% endwith %}
+
+    <section class="card">
+      <span class="eyebrow">Flux de travail</span>
+      <h2>Trois étapes</h2>
+      <div class="steps">
+        <article class="step"><span>1</span><h3>Construire le corpus</h3><p>Efface l’ancien corpus puis collecte 10 articles pour chacun des 6 thèmes.</p><form method="post" action="{{ url_for('collect') }}"><button type="submit">Construire le corpus</button></form></article>
+        <article class="step"><span>2</span><h3>Lancer l'analyse</h3><p>Prétraitement, TF-IDF, K-means, LDA, régression logistique, métriques et graphiques comparatifs.</p><form method="post" action="{{ url_for('analyze') }}"><button type="submit">Lancer l'analyse</button></form></article>
+        <article class="step"><span>3</span><h3>Classifier un article</h3><p>Collez une URL publique pour proposer un thème. Comparer les 3 méthodes.</p><form method="post" action="{{ url_for('classify') }}"><input name="url" type="url" required placeholder="https://exemple.fr/article" value="{{ url }}"><button type="submit">Classifier</button></form></article>
+      </div>
+    </section>
+
+    {% if error %}<section class="alert error"><strong>{{ error }}</strong></section>{% endif %}
+
+    {% if result %}
+    <section class="card result-card">
+      <div class="result-head">
+        <div><span class="eyebrow">Nouvelle URL</span><h2>{{ result.title }}</h2><p>{{ result.site }} · {{ result.word_count }} mots · {{ result.tfidf_terms }} termes TF-IDF reconnus</p></div>
+      </div>
+
+      <div class="model-cards">
+        <article class="model-card">
+          <span class="method-tag">Non supervisé</span>
+          <h3>K-means</h3>
+          <strong class="model-theme">{{ result.kmeans.theme }}</strong>
+          <p>Cluster {{ result.kmeans.cluster }}</p>
+          <div class="model-score"><span>{{ result.kmeans.score_label }}</span><strong>{{ '%.1f'|format(result.kmeans.score * 100) }} %</strong></div>
+        </article>
+        <article class="model-card">
+          <span class="method-tag">Non supervisé</span>
+          <h3>LDA</h3>
+          <strong class="model-theme">{{ result.lda.theme }}</strong>
+          <p>Topic {{ result.lda.topic }}</p>
+          <div class="model-score"><span>{{ result.lda.score_label }}</span><strong>{{ '%.1f'|format(result.lda.score * 100) }} %</strong></div>
+        </article>
+        <article class="model-card {{ 'uncertain-box' if result.logistic.uncertain else 'confident-box' }}">
+          <span class="method-tag">Supervisé</span>
+          <h3>Régression logistique</h3>
+          <strong class="model-theme">{{ result.logistic.predicted }}</strong>
+          <p>Meilleur thème : {{ result.logistic.best_theme }}</p>
+          <div class="model-score"><span>Probabilité</span><strong>{{ '%.1f'|format(result.logistic.best_score * 100) }} %</strong></div>
+        </article>
+      </div>
+
+      {% if url_chart %}
+      <div class="chart-block">
+        <h3>Graphiques de comparaison de la nouvelle URL</h3>
+        {% if url_theme_chart %}
+        <img class="comparison-chart" src="{{ url_for('output_file', filename='figures/comparaison_url_par_theme.svg') }}?v={{ result.url|length }}" alt="Comparaison des six thèmes pour K-means, LDA et la régression logistique">
+        <p class="chart-note">Ce graphique confronte les trois méthodes thème par thème. Les valeurs ne sont pas de même nature : similarité K-means, poids LDA et probabilité de régression.</p>
+        {% endif %}
+        <img class="comparison-chart second-chart" src="{{ url_for('output_file', filename='figures/comparaison_url.svg') }}?v={{ result.url|length }}" alt="Comparaison des décisions des trois méthodes sur la nouvelle URL">
+        <p class="chart-note">Ce second graphique résume la meilleure décision de chaque méthode.</p>
+      </div>
+      {% endif %}
+
+      <div class="result-grid">
+        <div><h3>Classement de la régression logistique</h3><div class="ranking">{% for item in result.logistic.rankings %}<div class="rank-row"><div class="rank-label"><span>{{ item.theme }}</span><strong>{{ '%.1f'|format(item.score * 100) }} %</strong></div><div class="bar"><span style="width: {{ item.score * 100 }}%"></span></div></div>{% endfor %}</div></div>
+        <div><h3>Informations</h3><dl class="facts"><div><dt>Écart avec le 2e</dt><dd>{{ '%.1f'|format(result.logistic.margin * 100) }} %</dd></div><div><dt>Décision régression</dt><dd>{{ 'Incertain' if result.logistic.uncertain else 'Accepté' }}</dd></div></dl><h3>Mots reconnus</h3><div class="chips">{% for term in result.terms %}<span>{{ term }}</span>{% endfor %}</div></div>
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="stats-grid">
+      <article class="stat card"><span>Articles</span><strong>{{ stats.articles }}</strong></article>
+      <article class="stat card"><span>Thèmes</span><strong>{{ stats.themes }}</strong></article>
+      <article class="stat card"><span>Sites</span><strong>{{ stats.sites }}</strong></article>
+      <article class="stat card"><span>Accuracy CV</span><strong>{% if metrics.supervised and metrics.supervised.accuracy is not none %}{{ '%.1f'|format(metrics.supervised.accuracy * 100) }} %{% else %}—{% endif %}</strong></article>
+    </section>
+
+    <section class="two-cols">
+      <article class="card"><span class="eyebrow">Corpus</span><h2>Répartition par thème</h2>{% if stats.error %}<p class="muted">{{ stats.error }}</p>{% elif stats.by_theme %}<div class="theme-list">{% for item in stats.by_theme %}<div><span>{{ item.theme }}</span><strong>{{ item.count }}</strong></div>{% endfor %}</div>{% else %}<p class="muted">Le corpus est vide. Commencez par l'étape 1.</p>{% endif %}</article>
+      <article class="card"><span class="eyebrow">Évaluation</span><h2>Résultats des modèles</h2>{% if metrics.unsupervised %}<div class="metric-list">{% for item in metrics.unsupervised %}<div class="metric-row"><strong>{{ item.algorithm }}</strong><span>Pureté {{ '%.3f'|format(item.purity) if item.purity is not none else '—' }}</span><span>ARI {{ '%.3f'|format(item.ari) if item.ari is not none else '—' }}</span>{% if item.coherence is not none %}<span>Cohérence {{ '%.3f'|format(item.coherence) }}</span>{% endif %}</div>{% endfor %}{% if metrics.supervised %}<div class="metric-row"><strong>Régression logistique</strong><span>Accuracy {{ '%.3f'|format(metrics.supervised.accuracy) }}</span><span>F1-macro {{ '%.3f'|format(metrics.supervised.f1) }}</span></div>{% endif %}</div>{% else %}<p class="muted">Les résultats apparaîtront après l'étape 2.</p>{% endif %}</article>
+    </section>
+
+    {% if corpus_chart %}
+    <section class="card">
+      <span class="eyebrow">Comparaison</span>
+      <h2>Confrontation des trois méthodes sur le corpus</h2>
+      <img class="comparison-chart" src="{{ url_for('output_file', filename='figures/comparaison_corpus.svg') }}" alt="Comparaison des métriques des trois méthodes">
+      <p class="chart-note">Ce graphique compare les métriques propres à chaque méthode. Elles ne mesurent pas toutes exactement la même chose.</p>
+      {% if corpus_reference_chart %}
+      <img class="comparison-chart second-chart" src="{{ url_for('output_file', filename='figures/comparaison_corpus_reference.svg') }}" alt="Comparaison indicative avec les thèmes de référence">
+      <p class="chart-note">Le second graphique donne une comparaison indicative avec les thèmes de référence. Pour K-means et LDA, l'association cluster/topic → thème est faite après l'analyse ; pour la régression logistique, les scores viennent de la validation croisée.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if visualizations %}
+    <section class="card">
+      <span class="eyebrow">Visualisations</span>
+      <h2>Graphiques complémentaires pour interpréter les modèles</h2>
+      <div class="viz-grid">
+        {% for viz in visualizations %}
+        <article class="viz-card">
+          <h3>{{ viz.title }}</h3>
+          <img class="comparison-chart" src="{{ url_for('output_file', filename=viz.file) }}" alt="{{ viz.title }}">
+          <p class="chart-note">{{ viz.note }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </main>
+  <footer>Classification Presse · logiciel libre sous licence MIT</footer>
+</body>
+</html>
