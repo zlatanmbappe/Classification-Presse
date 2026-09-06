@@ -1,0 +1,11 @@
+Package: classification-presse
+Version: 1.0.0-1
+Section: science
+Priority: optional
+Architecture: all
+Maintainer: Yassine Gueniche
+Depends: python3 (>= 3.10), python3-venv, python3-pip, postgresql, postgresql-contrib, libpq-dev, build-essential, ca-certificates, xdg-utils
+Description: Classification thématique d'articles de presse français
+ Logiciel universitaire de collecte, prétraitement NLP, fouille de données
+ et classification thématique d'articles de presse. L'interface locale guide
+ l'utilisateur en trois étapes : corpus, analyse et classification d'une URL.
